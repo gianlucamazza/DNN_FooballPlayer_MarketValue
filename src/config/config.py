@@ -52,7 +52,7 @@ class Config:
         "foreigners_percentage",
         "transfer_fee",
         "transfer_date",
-        "goals_per_game",  # Aggiunto qui
+        "goals_per_game",
         "home_club_goals",
         "away_club_goals",
     )
@@ -142,6 +142,8 @@ class Config:
             game_lineups_file=self.game_lineups_file,
             transfers_file=self.transfers_file,
             target_column=self.target_column,
+            feature_selection_method=self.feature_selection_method,
+            k_best=self.k_best,
             selected_features=self.selected_features,
             numeric_features=self.numeric_features,
             hidden_size=self.hidden_size,

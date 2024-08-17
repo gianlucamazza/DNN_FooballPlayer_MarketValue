@@ -194,10 +194,7 @@ def select_and_scale_features(
     ]
     features = features[selected_features].copy()
 
-    # Perform feature selection
-    features = perform_feature_selection(features, target, config)
-
-    logger.info(f"Selected features: {features.columns.tolist()}")
+    logger.info(f"Selected features: {selected_features}")
 
     non_numeric_columns = features.select_dtypes(include=["object"]).columns.tolist()
 
@@ -222,6 +219,19 @@ def select_and_scale_features(
     features[numeric_features_to_scale] = scaler.fit_transform(
         features[numeric_features_to_scale]
     )
+
+    # Feature Selection
+    if config.feature_selection_method == "k_best":
+        logger.info("Performing feature selection using SelectKBest")
+        selector = SelectKBest(score_func=f_regression, k=config.k_best)
+        features_selected = selector.fit_transform(features, target)
+        selected_feature_names = [
+            features.columns[i] for i in selector.get_support(indices=True)
+        ]
+        features = pd.DataFrame(features_selected, columns=selected_feature_names)
+        logger.info(
+            f"Selected features after feature selection: {selected_feature_names}"
+        )
 
     logger.info("Features selected and scaled successfully")
     return features, target
