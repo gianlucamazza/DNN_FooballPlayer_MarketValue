@@ -3,5 +3,7 @@ numpy
 torch
 matplotlib
 scikit-learn
+pyarrow
+optuna
 flake8
 black
