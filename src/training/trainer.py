@@ -66,20 +66,13 @@ def evaluate_model(model, X_val, y_val, device=None):
     return mse, rmse, r2
 
 
-def get_optimizer(optimizer_name, model, learning_rate, weight_decay):
-    """Get the optimizer based on the provided name."""
-    if optimizer_name == "adam":
-        return optim.Adam(
-            model.parameters(), lr=learning_rate, weight_decay=weight_decay
-        )
-    elif optimizer_name == "sgd":
-        return optim.SGD(
-            model.parameters(), lr=learning_rate, weight_decay=weight_decay
-        )
-    elif optimizer_name == "rmsprop":
-        return optim.RMSprop(
-            model.parameters(), lr=learning_rate, weight_decay=weight_decay
-        )
+def get_optimizer(optimizer_name, model_params, learning_rate, weight_decay):
+    if optimizer_name.lower() == "adam":
+        return optim.Adam(model_params, lr=learning_rate, weight_decay=weight_decay)
+    elif optimizer_name.lower() == "sgd":
+        return optim.SGD(model_params, lr=learning_rate, weight_decay=weight_decay)
+    elif optimizer_name.lower() == "rmsprop":
+        return optim.RMSprop(model_params, lr=learning_rate, weight_decay=weight_decay)
     else:
         raise ValueError(f"Unsupported optimizer: {optimizer_name}")
 
@@ -130,7 +123,9 @@ def train_model(
 
     # Loss function and optimizer
     criterion = nn.MSELoss()
-    optimizer = get_optimizer(optimizer_name, model, learning_rate, weight_decay)
+    optimizer = get_optimizer(
+        optimizer_name, model.parameters(), learning_rate, weight_decay
+    )
 
     # Training loop
     for epoch in range(epochs):

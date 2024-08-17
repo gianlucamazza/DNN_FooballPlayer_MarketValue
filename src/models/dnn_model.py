@@ -27,11 +27,11 @@ class DNNModel(nn.Module):
 
         for i in range(num_layers):
             layers.append(nn.Linear(current_input_size, hidden_size))
-            layers.append(activation)  # Apply the selected activation function
-            layers.append(nn.Dropout(dropout))  # Apply dropout
+            layers.append(activation)
+            layers.append(nn.Dropout(dropout))
             current_input_size = hidden_size
 
-        layers.append(nn.Linear(current_input_size, output_size))  # Output layer
+        layers.append(nn.Linear(current_input_size, output_size))
         self.network = nn.Sequential(*layers)
 
     def forward(self, x):
