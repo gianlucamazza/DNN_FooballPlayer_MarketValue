@@ -1,5 +1,6 @@
 import pandas as pd
 from sklearn.preprocessing import StandardScaler, LabelEncoder
+from sklearn.feature_selection import SelectKBest, f_regression
 from src.utils.logger import get_logger
 from src.config.config import Config
 from typing import Tuple
@@ -155,6 +156,25 @@ def calculate_goals_per_game(final_dataset: pd.DataFrame) -> None:
         )
 
 
+def perform_feature_selection(
+    X: pd.DataFrame, y: pd.Series, config: Config
+) -> pd.DataFrame:
+    logger.info("Performing feature selection")
+    if config.feature_selection_method == "k_best":
+        selector = SelectKBest(score_func=f_regression, k=config.k_best)
+        X_selected = selector.fit_transform(X, y)
+        selected_features = X.columns[selector.get_support()]
+    else:
+        logger.warning(
+            f"Feature selection method {config.feature_selection_method} not recognized."
+        )
+        X_selected = X
+        selected_features = X.columns
+
+    logger.info(f"Selected features after feature selection: {list(selected_features)}")
+    return pd.DataFrame(X_selected, columns=selected_features)
+
+
 def select_and_scale_features(
     final_dataset: pd.DataFrame, config: Config
 ) -> Tuple[pd.DataFrame, pd.Series]:
@@ -174,7 +194,10 @@ def select_and_scale_features(
     ]
     features = features[selected_features].copy()
 
-    logger.info(f"Selected features: {selected_features}")
+    # Perform feature selection
+    features = perform_feature_selection(features, target, config)
+
+    logger.info(f"Selected features: {features.columns.tolist()}")
 
     non_numeric_columns = features.select_dtypes(include=["object"]).columns.tolist()
 
