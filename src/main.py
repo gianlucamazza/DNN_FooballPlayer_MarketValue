@@ -11,7 +11,7 @@ from functools import lru_cache
 from src.data.data_loader import load_data
 from src.processing.preprocessor import preprocess_data
 from src.models.lstm_model import LSTMModel
-from src.training.optimizer import optimize_hyperparameters
+from src.training.optimizer import optimize_hyperparameters, load_best_hyperparams
 from src.training.trainer import train_model
 from src.evaluation.evaluator import evaluate_model
 from src.utils.logger import get_logger
@@ -222,6 +222,7 @@ def process_data(cfg: Config) -> Tuple[pd.DataFrame, pd.Series]:
 def main(cfg: Config) -> Optional[Tuple[pd.DataFrame, pd.Series]]:
     """Main function to orchestrate data processing, hyperparameter optimization, model training, and evaluation."""
     logger.info("Starting main pipeline.")
+    hyperparams_path = os.path.join(cfg.model_dir, "best_hyperparams.json")
 
     try:
         if not os.path.exists(cfg.data_path) or not os.listdir(cfg.data_path):
@@ -247,13 +248,18 @@ def main(cfg: Config) -> Optional[Tuple[pd.DataFrame, pd.Series]]:
 
         best_hyperparams = None
         if cfg.optimize_hyperparameters:
-            logger.info("Optimizing hyperparameters with Optuna.")
-            best_hyperparams = optimize_hyperparameters(
-                X_train,
-                y_train,
-                n_trials=cfg.n_trials,  # Make n_trials configurable in cfg
-                device=torch.device("cuda" if torch.cuda.is_available() else "cpu"),
-            )
+            if os.path.exists(hyperparams_path):
+                logger.info(f"Loading best hyperparameters from {hyperparams_path}.")
+                best_hyperparams = load_best_hyperparams(hyperparams_path)
+            else:
+                logger.info("Optimizing hyperparameters with Optuna.")
+                best_hyperparams = optimize_hyperparameters(
+                    X_train,
+                    y_train,
+                    n_trials=cfg.n_trials,
+                    device=torch.device("cuda" if torch.cuda.is_available() else "cpu"),
+                    hyperparams_path=hyperparams_path,
+                )
 
         if not best_hyperparams:
             logger.info("Using default hyperparameters from config.")

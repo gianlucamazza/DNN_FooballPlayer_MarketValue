@@ -1,4 +1,5 @@
 import optuna
+import json
 from sklearn.model_selection import train_test_split
 from src.models.lstm_model import LSTMModel
 from src.training.trainer import train_model, evaluate_model
@@ -6,6 +7,29 @@ from src.utils.logger import get_logger
 import pandas as pd
 
 logger = get_logger(__name__)
+
+
+def save_best_hyperparams(best_hyperparams: dict, filepath: str) -> None:
+    """Save the best hyperparameters to a JSON file."""
+    try:
+        with open(filepath, "w") as f:
+            json.dump(best_hyperparams, f, indent=4)
+        logger.info(f"Best hyperparameters saved to {filepath}")
+    except Exception as e:
+        logger.error(f"Failed to save hyperparameters: {e}")
+        raise
+
+
+def load_best_hyperparams(filepath: str) -> dict:
+    """Load the best hyperparameters from a JSON file."""
+    try:
+        with open(filepath, "r") as f:
+            best_hyperparams = json.load(f)
+        logger.info(f"Best hyperparameters loaded from {filepath}")
+        return best_hyperparams
+    except Exception as e:
+        logger.error(f"Failed to load hyperparameters: {e}")
+        raise
 
 
 def objective(trial, X, y, device=None):
@@ -74,7 +98,13 @@ def objective(trial, X, y, device=None):
     return val_mse
 
 
-def optimize_hyperparameters(X: pd.DataFrame, y: pd.Series, n_trials=50, device=None):
+def optimize_hyperparameters(
+    X: pd.DataFrame,
+    y: pd.Series,
+    n_trials=50,
+    device=None,
+    hyperparams_path: str = "best_hyperparams.json",
+) -> dict:
     """
     Optimize hyperparameters using Optuna.
 
@@ -83,6 +113,7 @@ def optimize_hyperparameters(X: pd.DataFrame, y: pd.Series, n_trials=50, device=
         y: Target series.
         n_trials: Number of trials to run for optimization.
         device: The device (CPU/GPU) to run the training on.
+        hyperparams_path: Path to save the best hyperparameters.
 
     Returns:
         The best set of hyperparameters found during optimization.
@@ -94,7 +125,10 @@ def optimize_hyperparameters(X: pd.DataFrame, y: pd.Series, n_trials=50, device=
     # Optimize the objective function
     study.optimize(lambda trial: objective(trial, X, y, device), n_trials=n_trials)
 
-    logger.info(f"Best hyperparameters: {study.best_params}")
+    best_hyperparams = study.best_params
+    logger.info(f"Best hyperparameters: {best_hyperparams}")
     logger.info(f"Best validation MSE: {study.best_value:.4f}")
+
+    save_best_hyperparams(best_hyperparams, hyperparams_path)
 
     return study.best_params
