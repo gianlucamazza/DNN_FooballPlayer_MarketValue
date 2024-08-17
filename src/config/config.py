@@ -29,6 +29,10 @@ class Config:
     # Data processing
     target_column: str = "market_value_in_eur"
 
+    # Feature selection
+    feature_selection_method: str = "k_best"
+    k_best: int = 10
+
     # Selected features for preprocessing
     selected_features: Tuple[str, ...] = (
         "age",
