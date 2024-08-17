@@ -22,6 +22,10 @@ class Config:
     game_lineups_file: str = "game_lineups.csv"
     transfers_file: str = "transfers.csv"
 
+    # LSTM model parameters
+    optimize_hyperparameters: bool = True
+    n_trials = 50
+
     # Data processing
     target_column: str = "market_value_in_eur"
 

@@ -11,6 +11,7 @@ from functools import lru_cache
 from src.data.data_loader import load_data
 from src.processing.preprocessor import preprocess_data
 from src.models.lstm_model import LSTMModel
+from src.training.optimizer import optimize_hyperparameters
 from src.training.trainer import train_model
 from src.evaluation.evaluator import evaluate_model
 from src.utils.logger import get_logger
@@ -122,21 +123,32 @@ def save_processed_data(X: pd.DataFrame, y: pd.Series, cfg: Config) -> None:
         raise
 
 
-def train_and_save_model(X: pd.DataFrame, y: pd.Series, cfg: Config) -> None:
-    """Train a model using the provided data and save it to disk."""
+def train_and_save_model(
+    X: pd.DataFrame, y: pd.Series, cfg: Config, hyperparams: dict
+) -> None:
+    """Train a model using the provided data and save it to disk with optimized hyperparameters."""
     logger.info(
         f"Starting model training with data shapes - X: {X.shape}, y: {y.shape}"
     )
     try:
         model = LSTMModel(
             input_size=X.shape[1],
-            hidden_size=cfg.hidden_size,
-            num_layers=cfg.num_layers,
+            hidden_size=hyperparams.get("hidden_size", cfg.hidden_size),
+            num_layers=hyperparams.get("num_layers", cfg.num_layers),
             output_size=cfg.output_size,
+            dropout=hyperparams.get("dropout", 0.0),
         )
-        logger.info(f"Training model with configuration: {cfg}")
+        logger.info(
+            f"Training model with configuration: {cfg} and hyperparameters: {hyperparams}"
+        )
         trained_model = train_model(
-            model, X, y, cfg.epochs, cfg.batch_size, cfg.learning_rate
+            model,
+            X,
+            y,
+            epochs=cfg.epochs,
+            batch_size=hyperparams.get("batch_size", cfg.batch_size),
+            learning_rate=hyperparams.get("learning_rate", cfg.learning_rate),
+            weight_decay=hyperparams.get("weight_decay", 0.0),
         )
         logger.info(f"Saving trained model to: {cfg.model_path}")
         torch.save(trained_model.state_dict(), cfg.model_path)
@@ -208,7 +220,7 @@ def process_data(cfg: Config) -> Tuple[pd.DataFrame, pd.Series]:
 
 
 def main(cfg: Config) -> Optional[Tuple[pd.DataFrame, pd.Series]]:
-    """Main function to orchestrate data processing, model training, and evaluation."""
+    """Main function to orchestrate data processing, hyperparameter optimization, model training, and evaluation."""
     logger.info("Starting main pipeline.")
 
     try:
@@ -233,8 +245,29 @@ def main(cfg: Config) -> Optional[Tuple[pd.DataFrame, pd.Series]]:
             X, y, test_size=cfg.test_size, random_state=cfg.random_state
         )
 
-        logger.info("Training and saving the model.")
-        train_and_save_model(X_train, y_train, cfg)
+        best_hyperparams = None
+        if cfg.optimize_hyperparameters:
+            logger.info("Optimizing hyperparameters with Optuna.")
+            best_hyperparams = optimize_hyperparameters(
+                X_train,
+                y_train,
+                n_trials=cfg.n_trials,  # Make n_trials configurable in cfg
+                device=torch.device("cuda" if torch.cuda.is_available() else "cpu"),
+            )
+
+        if not best_hyperparams:
+            logger.info("Using default hyperparameters from config.")
+            best_hyperparams = {
+                "hidden_size": cfg.hidden_size,
+                "num_layers": cfg.num_layers,
+                "batch_size": cfg.batch_size,
+                "learning_rate": cfg.learning_rate,
+                "dropout": 0.0,
+                "weight_decay": 0.0,
+            }
+
+        logger.info("Training and saving the model with selected hyperparameters.")
+        train_and_save_model(X_train, y_train, cfg, best_hyperparams)
 
         logger.info("Evaluating the trained model.")
         mse, rmse, r2 = evaluate_saved_model(X_test, y_test, cfg)

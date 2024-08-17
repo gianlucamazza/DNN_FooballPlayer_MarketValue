@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.optim as optim
 import numpy as np
 from torch.utils.data import DataLoader, TensorDataset
+from sklearn.metrics import mean_squared_error, r2_score
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -39,10 +40,46 @@ def check_for_nan_inf(X, y):
     logger.info("No NaN or infinite values found.")
 
 
+def evaluate_model(model, X_val, y_val, device=None):
+    """Evaluate the model using the validation dataset."""
+    logger.info("Starting model evaluation")
+
+    # Move model to the correct device
+    if device is None:
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model.to(device)
+
+    # Convert data to PyTorch tensors and move to device
+    X_val_tensor = torch.FloatTensor(X_val.values).to(device)
+    y_val_tensor = torch.FloatTensor(y_val.values).to(device)
+
+    # Ensure model is in evaluation mode
+    model.eval()
+
+    with torch.no_grad():
+        predictions = model(X_val_tensor).view(-1)
+        mse = mean_squared_error(y_val_tensor.cpu(), predictions.cpu())
+        rmse = np.sqrt(mse)
+        r2 = r2_score(y_val_tensor.cpu(), predictions.cpu())
+
+    logger.info(f"Evaluation results - MSE: {mse:.4f}, RMSE: {rmse:.4f}, R²: {r2:.4f}")
+    return mse, rmse, r2
+
+
 def train_model(
-    model, X_train, y_train, epochs=100, batch_size=32, learning_rate=0.001, device=None
+    model,
+    X_train,
+    y_train,
+    X_val,
+    y_val,
+    epochs=100,
+    batch_size=32,
+    learning_rate=0.001,
+    patience=10,
+    weight_decay=1e-5,
+    device=None,
 ):
-    """Train the model using the provided training data."""
+    """Train the model using the provided training data with early stopping and regularization."""
     logger.info("Starting model training")
 
     # Check data types and integrity
@@ -69,11 +106,17 @@ def train_model(
     train_dataset = TensorDataset(X_train_tensor, y_train_tensor)
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
 
-    # Loss function and optimizer
+    # Loss function and optimizer with L2 regularization (weight decay)
     criterion = nn.MSELoss()
-    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+    optimizer = optim.Adam(
+        model.parameters(), lr=learning_rate, weight_decay=weight_decay
+    )
 
-    # Training loop
+    best_val_loss = float("inf")
+    epochs_no_improve = 0
+    early_stop = False
+
+    # Training loop with early stopping
     for epoch in range(epochs):
         model.train()
         total_loss = 0
@@ -90,8 +133,33 @@ def train_model(
             total_loss += loss.item()
 
         avg_loss = total_loss / len(train_loader)
-        if epoch % 10 == 0 or epoch == epochs - 1:  # Log every 10 epochs or final epoch
-            logger.info(f"Epoch [{epoch + 1}/{epochs}], Loss: {avg_loss:.4f}")
 
-    logger.info("Training completed successfully")
+        # Evaluate on validation set
+        val_mse, val_rmse, val_r2 = evaluate_model(model, X_val, y_val, device)
+
+        # Early stopping logic
+        if val_mse < best_val_loss:
+            best_val_loss = val_mse
+            epochs_no_improve = 0
+            best_model_state = model.state_dict()
+            logger.info(f"Validation loss improved to {val_mse:.4f}. Saving model...")
+        else:
+            epochs_no_improve += 1
+            logger.info(
+                f"No improvement in validation loss for {epochs_no_improve} epochs."
+            )
+
+        if epochs_no_improve >= patience:
+            logger.info("Early stopping triggered.")
+            early_stop = True
+            break
+
+        if epoch % 10 == 0 or epoch == epochs - 1 or early_stop:  # Log periodically
+            logger.info(
+                f"Epoch [{epoch + 1}/{epochs}], Loss: {avg_loss:.4f}, Val MSE: {val_mse:.4f}"
+            )
+
+    # Load the best model state before early stopping
+    model.load_state_dict(best_model_state)
+    logger.info("Training completed successfully with early stopping.")
     return model.state_dict()
