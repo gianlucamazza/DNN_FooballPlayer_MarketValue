@@ -70,16 +70,15 @@ def train_model(
     model,
     X_train,
     y_train,
-    X_val,
-    y_val,
+    X_val=None,
+    y_val=None,
     epochs=100,
     batch_size=32,
     learning_rate=0.001,
-    patience=10,
-    weight_decay=1e-5,
+    weight_decay=0.0,
     device=None,
 ):
-    """Train the model using the provided training data with early stopping and regularization."""
+    """Train the model using the provided training data."""
     logger.info("Starting model training")
 
     # Check data types and integrity
@@ -95,28 +94,28 @@ def train_model(
     model.to(device)
 
     # Convert data to PyTorch tensors and move to device
-    X_train_tensor = torch.FloatTensor(X_train.values).to(device)
+    X_train_tensor = (
+        torch.FloatTensor(X_train.values).unsqueeze(1).to(device)
+    )  # Add sequence dimension
     y_train_tensor = torch.FloatTensor(y_train.values).to(device)
 
-    # Reshape X_train_tensor for LSTM if needed
-    if len(X_train_tensor.shape) == 2:
-        X_train_tensor = X_train_tensor.unsqueeze(1)  # Adding sequence length dimension
+    if X_val is not None and y_val is not None:
+        X_val_tensor = torch.FloatTensor(X_val.values).unsqueeze(1).to(device)
+        y_val_tensor = torch.FloatTensor(y_val.values).to(device)
+    else:
+        X_val_tensor, y_val_tensor = None, None
 
     # Create DataLoader
     train_dataset = TensorDataset(X_train_tensor, y_train_tensor)
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
 
-    # Loss function and optimizer with L2 regularization (weight decay)
+    # Loss function and optimizer
     criterion = nn.MSELoss()
     optimizer = optim.Adam(
         model.parameters(), lr=learning_rate, weight_decay=weight_decay
     )
 
-    best_val_loss = float("inf")
-    epochs_no_improve = 0
-    early_stop = False
-
-    # Training loop with early stopping
+    # Training loop
     for epoch in range(epochs):
         model.train()
         total_loss = 0
@@ -133,33 +132,17 @@ def train_model(
             total_loss += loss.item()
 
         avg_loss = total_loss / len(train_loader)
+        if epoch % 10 == 0 or epoch == epochs - 1:  # Log every 10 epochs or final epoch
+            logger.info(f"Epoch [{epoch + 1}/{epochs}], Loss: {avg_loss:.4f}")
 
-        # Evaluate on validation set
-        val_mse, val_rmse, val_r2 = evaluate_model(model, X_val, y_val, device)
+        # Validation (optional)
+        if X_val_tensor is not None and y_val_tensor is not None:
+            model.eval()
+            with torch.no_grad():
+                val_outputs = model(X_val_tensor)
+                val_outputs = val_outputs.view(-1)
+                val_loss = criterion(val_outputs, y_val_tensor).item()
+            logger.info(f"Validation Loss after epoch {epoch + 1}: {val_loss:.4f}")
 
-        # Early stopping logic
-        if val_mse < best_val_loss:
-            best_val_loss = val_mse
-            epochs_no_improve = 0
-            best_model_state = model.state_dict()
-            logger.info(f"Validation loss improved to {val_mse:.4f}. Saving model...")
-        else:
-            epochs_no_improve += 1
-            logger.info(
-                f"No improvement in validation loss for {epochs_no_improve} epochs."
-            )
-
-        if epochs_no_improve >= patience:
-            logger.info("Early stopping triggered.")
-            early_stop = True
-            break
-
-        if epoch % 10 == 0 or epoch == epochs - 1 or early_stop:  # Log periodically
-            logger.info(
-                f"Epoch [{epoch + 1}/{epochs}], Loss: {avg_loss:.4f}, Val MSE: {val_mse:.4f}"
-            )
-
-    # Load the best model state before early stopping
-    model.load_state_dict(best_model_state)
-    logger.info("Training completed successfully with early stopping.")
+    logger.info("Training completed successfully")
     return model.state_dict()
