@@ -1,6 +1,9 @@
-#
+# data files
 data/raw/*.csv
 optuna_study.db
+
+# scripts
+vastai.sh
 
 # Python
 __pycache__/

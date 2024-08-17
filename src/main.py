@@ -187,6 +187,18 @@ def evaluate_saved_model(
         raise
 
 
+def print_target_statistics(y: pd.Series) -> None:
+    """Print statistics for the target variable."""
+    logger.info(
+        f"Target Variable Statistics:\n"
+        f"Mean: {y.mean()}\n"
+        f"Median: {y.median()}\n"
+        f"Max: {y.max()}\n"
+        f"Min: {y.min()}\n"
+        f"Std: {y.std()}\n"
+    )
+
+
 def process_data(cfg: Config) -> Tuple[pd.DataFrame, pd.Series]:
     """Process raw data into feature matrix and target vector."""
     try:
@@ -215,6 +227,8 @@ def process_data(cfg: Config) -> Tuple[pd.DataFrame, pd.Series]:
         logger.info(
             f"Data processing completed - Features shape: {X.shape}, Target shape: {y.shape}"
         )
+        logger.info("Printing target variable statistics.")
+        print_target_statistics(y)
         return X, y
     except Exception as e:
         logger.error(f"Error in data processing: {e}")
