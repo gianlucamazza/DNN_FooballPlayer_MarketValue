@@ -10,7 +10,7 @@ from functools import lru_cache
 
 from src.data.data_loader import load_data
 from src.processing.preprocessor import preprocess_data
-from src.models.lstm_model import LSTMModel
+from src.models.dnn_model import DNNModel
 from src.training.optimizer import optimize_hyperparameters, load_best_hyperparams
 from src.training.trainer import train_model
 from src.evaluation.evaluator import evaluate_model
@@ -131,7 +131,7 @@ def train_and_save_model(
         f"Starting model training with data shapes - X: {X.shape}, y: {y.shape}"
     )
     try:
-        model = LSTMModel(
+        model = DNNModel(
             input_size=X.shape[1],
             hidden_size=hyperparams.get("hidden_size", cfg.hidden_size),
             num_layers=hyperparams.get("num_layers", cfg.num_layers),
@@ -149,6 +149,8 @@ def train_and_save_model(
             batch_size=hyperparams.get("batch_size", cfg.batch_size),
             learning_rate=hyperparams.get("learning_rate", cfg.learning_rate),
             weight_decay=hyperparams.get("weight_decay", 0.0),
+            optimizer_name=cfg.optimizer,
+            device=torch.device("cuda" if torch.cuda.is_available() else "cpu"),
         )
         logger.info(f"Saving trained model to: {cfg.model_path}")
         torch.save(trained_model.state_dict(), cfg.model_path)
@@ -166,7 +168,7 @@ def evaluate_saved_model(
         f"Starting model evaluation with data shapes - X: {X.shape}, y: {y.shape}"
     )
     try:
-        model = LSTMModel(
+        model = DNNModel(
             input_size=X.shape[1],
             hidden_size=cfg.hidden_size,
             num_layers=cfg.num_layers,
@@ -235,7 +237,8 @@ def main(cfg: Config) -> Optional[Tuple[pd.DataFrame, pd.Series]]:
             cfg.processed_y_path
         ):
             logger.info("Processed data found. Loading from files.")
-            X, y = load_processed_data(cfg)
+            X = pd.read_csv(cfg.processed_x_path)
+            y = pd.read_csv(cfg.processed_y_path).squeeze("columns")
         else:
             logger.info("Processed data not found. Starting full data processing.")
             X, y = process_data(cfg)
@@ -257,6 +260,7 @@ def main(cfg: Config) -> Optional[Tuple[pd.DataFrame, pd.Series]]:
                     X_train,
                     y_train,
                     n_trials=cfg.n_trials,
+                    config=cfg,
                     device=torch.device("cuda" if torch.cuda.is_available() else "cpu"),
                     hyperparams_path=hyperparams_path,
                 )

@@ -66,6 +66,24 @@ def evaluate_model(model, X_val, y_val, device=None):
     return mse, rmse, r2
 
 
+def get_optimizer(optimizer_name, model, learning_rate, weight_decay):
+    """Get the optimizer based on the provided name."""
+    if optimizer_name == "adam":
+        return optim.Adam(
+            model.parameters(), lr=learning_rate, weight_decay=weight_decay
+        )
+    elif optimizer_name == "sgd":
+        return optim.SGD(
+            model.parameters(), lr=learning_rate, weight_decay=weight_decay
+        )
+    elif optimizer_name == "rmsprop":
+        return optim.RMSprop(
+            model.parameters(), lr=learning_rate, weight_decay=weight_decay
+        )
+    else:
+        raise ValueError(f"Unsupported optimizer: {optimizer_name}")
+
+
 def train_model(
     model,
     X_train,
@@ -76,6 +94,7 @@ def train_model(
     batch_size=32,
     learning_rate=0.001,
     weight_decay=0.0,
+    optimizer_name="adam",
     device=None,
 ):
     """Train the model using the provided training data."""
@@ -111,9 +130,7 @@ def train_model(
 
     # Loss function and optimizer
     criterion = nn.MSELoss()
-    optimizer = optim.Adam(
-        model.parameters(), lr=learning_rate, weight_decay=weight_decay
-    )
+    optimizer = get_optimizer(optimizer_name, model, learning_rate, weight_decay)
 
     # Training loop
     for epoch in range(epochs):
@@ -122,7 +139,7 @@ def train_model(
         for batch_X, batch_y in train_loader:
             optimizer.zero_grad()
             outputs = model(batch_X)
-            outputs = outputs.view(-1)  # Flatten the output to match the target
+            outputs = outputs.view(-1)
             loss = criterion(outputs, batch_y)
             if torch.isnan(loss) or torch.isinf(loss):
                 logger.error(f"NaN or Inf detected in loss at epoch {epoch}")
@@ -132,10 +149,9 @@ def train_model(
             total_loss += loss.item()
 
         avg_loss = total_loss / len(train_loader)
-        if epoch % 10 == 0 or epoch == epochs - 1:  # Log every 10 epochs or final epoch
+        if epoch % 10 == 0 or epoch == epochs - 1:
             logger.info(f"Epoch [{epoch + 1}/{epochs}], Loss: {avg_loss:.4f}")
 
-        # Validation (optional)
         if X_val_tensor is not None and y_val_tensor is not None:
             model.eval()
             with torch.no_grad():

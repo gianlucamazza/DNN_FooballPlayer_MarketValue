@@ -2,13 +2,13 @@
 
 ## Overview
 
-The Player Market Value Prediction project predicts football players' market values using various features derived from their game performances, transfers, and other relevant data. This project employs machine learning techniques, specifically an LSTM (Long Short-Term Memory) model, to analyze historical data and forecast player values. These predictions can aid clubs, agents, and analysts in making informed decisions within the football market.
+The Player Market Value Prediction project aims to predict football players' market values using various features derived from their game performances, transfers, and other relevant data. This project employs machine learning techniques, specifically a Deep Neural Network (DNN) model, to analyze historical data and forecast player values. These predictions can aid clubs, agents, and analysts in making informed decisions within the football market.
 
 ## Features
 
 - **Data Preprocessing**: Merges and cleans data from multiple sources, including player appearances, game events, transfers, and club statistics.
 - **Feature Engineering**: Generates additional features such as age, goals per game, and other metrics to enhance the model’s predictive accuracy.
-- **Model Training**: Trains an LSTM model to predict player market values.
+- **Model Training**: Trains a DNN model to predict player market values.
 - **Evaluation**: Assesses model performance using metrics like Mean Squared Error (MSE), Root Mean Squared Error (RMSE), and R-squared (R²).
 
 ## Data Sources
@@ -74,7 +74,7 @@ If the dataset is not available locally, the pipeline will automatically downloa
     ├── main.py
     ├── models
     │   ├── __init__.py
-    │   └── lstm_model.py
+    │   └── dnn_model.py
     ├── processing
     │   ├── __init__.py
     │   └── preprocessor.py

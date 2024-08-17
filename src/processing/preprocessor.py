@@ -258,6 +258,9 @@ def preprocess_data(
 
         features, target = select_and_scale_features(final_dataset, config)
 
+        features.to_csv(config.processed_x_path, index=False)
+        target.to_csv(config.processed_y_path, index=False)
+
         logger.info("Data preprocessing completed successfully.")
     except Exception as e:
         logger.error(f"Error during data preprocessing: {e}")

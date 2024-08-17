@@ -22,7 +22,7 @@ class Config:
     game_lineups_file: str = "game_lineups.csv"
     transfers_file: str = "transfers.csv"
 
-    # LSTM model parameters
+    # DNN model parameters
     optimize_hyperparameters: bool = True
     n_trials = 50
 
@@ -73,9 +73,11 @@ class Config:
     )
 
     # Model parameters
-    hidden_size: int = 64
-    num_layers: int = 2
-    output_size: int = 1
+    hidden_size: int = 128
+    num_layers: int = 3
+    activation_function: str = "relu"  # Options: 'relu', 'sigmoid', 'tanh'
+    dropout: float = 0.3
+    optimizer: str = "adam"
 
     # Training parameters
     epochs: int = 100
@@ -105,7 +107,7 @@ class Config:
             os.path.join(self.processed_data_dir, "y_processed.csv"),
         )
         object.__setattr__(
-            self, "model_path", os.path.join(self.model_dir, "lstm_model.pth")
+            self, "model_path", os.path.join(self.model_dir, "dnn_model.pth")
         )
 
         # Ensure directories exist

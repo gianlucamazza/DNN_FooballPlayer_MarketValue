@@ -2,7 +2,7 @@ import optuna
 import json
 import os
 from sklearn.model_selection import train_test_split
-from src.models.lstm_model import LSTMModel
+from src.models.dnn_model import DNNModel
 from src.training.trainer import train_model, evaluate_model
 from src.utils.logger import get_logger
 import pandas as pd
@@ -33,7 +33,7 @@ def load_best_hyperparams(filepath: str) -> dict:
         raise
 
 
-def objective(trial, X, y, device=None):
+def objective(trial, X, y, config, device=None):
     """
     Objective function for Optuna hyperparameter optimization.
 
@@ -59,7 +59,7 @@ def objective(trial, X, y, device=None):
         f"Trial {trial.number}: Hyperparameters: "
         f"learning_rate={learning_rate:.6f}, batch_size={batch_size}, "
         f"hidden_size={hidden_size}, num_layers={num_layers}, "
-        f"weight_decay={weight_decay:.6f}, dropout={dropout:.4f}"
+        f"weight_decay={weight_decay:.6f}, dropout={dropout:.4f}, optimizer={config.optimizer}"
     )
 
     # Split the data into training and validation sets
@@ -68,12 +68,13 @@ def objective(trial, X, y, device=None):
     )
 
     # Define the model
-    model = LSTMModel(
+    model = DNNModel(
         input_size=X_train.shape[1],
         hidden_size=hidden_size,
         num_layers=num_layers,
         output_size=1,
         dropout=dropout,
+        activation_function=config.activation_function,
     )
 
     # Train the model
@@ -87,6 +88,7 @@ def objective(trial, X, y, device=None):
         batch_size=batch_size,
         learning_rate=learning_rate,
         weight_decay=weight_decay,
+        optimizer_name=config.optimizer,
         device=device,
     )
 
@@ -105,8 +107,9 @@ def objective(trial, X, y, device=None):
 def optimize_hyperparameters(
     X: pd.DataFrame,
     y: pd.Series,
-    study_name: str = "LSTM Hyperparameter Optimization",
+    study_name: str = "DNN Hyperparameter Optimization",
     n_trials=50,
+    config: dict = None,
     device=None,
     hyperparams_path: str = "best_hyperparams.json",
     storage_path: str = "optuna_study.db",
@@ -142,7 +145,9 @@ def optimize_hyperparameters(
     logger.info(f"Study {study_name} using storage: {storage_path}")
 
     # Optimize the objective function
-    study.optimize(lambda trial: objective(trial, X, y, device), n_trials=n_trials)
+    study.optimize(
+        lambda trial: objective(trial, X, y, config, device), n_trials=n_trials
+    )
 
     best_hyperparams = study.best_params
     logger.info(f"Best hyperparameters: {json.dumps(best_hyperparams, indent=4)}")
