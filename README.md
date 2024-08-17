@@ -2,49 +2,48 @@
 
 ## Overview
 
-The Player Market Value Prediction project aims to predict the market value of football players based on various features extracted from their game appearances, performance metrics, transfers, and other relevant data. This project leverages machine learning techniques, specifically an LSTM (Long Short-Term Memory) model, to analyze historical data and forecast player values. The predictions can be valuable for clubs, agents, and analysts in making informed decisions in the football market.
+The Player Market Value Prediction project predicts football players' market values using various features derived from their game performances, transfers, and other relevant data. This project employs machine learning techniques, specifically an LSTM (Long Short-Term Memory) model, to analyze historical data and forecast player values. These predictions can aid clubs, agents, and analysts in making informed decisions within the football market.
 
 ## Features
 
-- **Data Preprocessing**: Merging and cleaning data from various sources, including player appearances, game events, transfers, and club statistics.
-- **Feature Engineering**: Creating additional features such as age, goals per game, and more to improve the predictive power of the model.
-- **Model Training**: Training a machine learning model, specifically an LSTM model, to predict player market values.
-- **Evaluation**: Assessing the model's performance using metrics such as Mean Squared Error (MSE), Root Mean Squared Error (RMSE), and R-squared (R²).
+- **Data Preprocessing**: Merges and cleans data from multiple sources, including player appearances, game events, transfers, and club statistics.
+- **Feature Engineering**: Generates additional features such as age, goals per game, and other metrics to enhance the model’s predictive accuracy.
+- **Model Training**: Trains an LSTM model to predict player market values.
+- **Evaluation**: Assesses model performance using metrics like Mean Squared Error (MSE), Root Mean Squared Error (RMSE), and R-squared (R²).
 
 ## Data Sources
 
-The project utilizes multiple datasets to construct the feature set for model training:
+This project utilizes several datasets to construct the feature set for model training:
 
-- **Appearances Data**: Records of player appearances in matches, including minutes played, goals, assists, and other performance metrics.
-- **Games Data**: Information about the matches, such as date, venue, competing teams, and match outcomes.
-- **Players Data**: Personal and career details of the players, including position, height, foot preference, and previous market values.
-- **Transfers Data**: Details about player transfers between clubs, including transfer fees and market values at the time of transfer.
-- **Clubs Data**: Information about football clubs, including squad size, average age, total market value, and other club-specific metrics.
+- **Appearances Data**: Records of player appearances in matches, including metrics like minutes played, goals, and assists.
+- **Games Data**: Information about matches, such as date, venue, teams, and outcomes.
+- **Players Data**: Personal and career details of players, including position, height, and market values.
+- **Transfers Data**: Details about player transfers between clubs, including transfer fees and market values at the time of the transfer.
+- **Clubs Data**: Information about football clubs, including squad size, average age, and total market value.
 
 ## Configuration and Kaggle Setup
 
-This project is configured to work with datasets available on [Kaggle](https://www.kaggle.com/). Kaggle is a popular platform for data science competitions, datasets, and notebooks. To use Kaggle datasets in this project, you need to configure your Kaggle API key and place it in the appropriate directory.
+If the dataset is not available locally, the pipeline will automatically download it from [Kaggle](https://www.kaggle.com/). To enable this, you need to configure your Kaggle API key.
 
 ### Setting Up Kaggle
 
 1. **Create a Kaggle Account**:
-   - If you don't already have a Kaggle account, [sign up here](https://www.kaggle.com/account/login?phase=startSignup).
+   - If you don’t have a Kaggle account, [sign up here](https://www.kaggle.com/account/login?phase=startSignup).
 
-2. **Generate Kaggle API Key**:
+2. **Generate a Kaggle API Key**:
    - Log in to your Kaggle account.
-   - Go to the "Account" tab in your profile settings.
-   - Scroll down to the "API" section and click "Create New API Token". This will download a `kaggle.json` file containing your API key.
+   - Navigate to the "Account" section in your profile settings.
+   - Scroll to the "API" section and click "Create New API Token" to download the `kaggle.json` file.
 
-3. **Place API Key in Correct Directory**:
-   - Place the downloaded `kaggle.json` file in the following directory:
+3. **Place the API Key**:
+   - Move the `kaggle.json` file to the appropriate directory:
      - **Windows**: `C:\Users\<Your-Username>\.kaggle\`
      - **Mac/Linux**: `/Users/<Your-Username>/.kaggle/`
+   - Ensure correct file permissions:
+     - **Mac/Linux**: Run `chmod 600 ~/.kaggle/kaggle.json`.
 
-   - Ensure that the file has the correct permissions:
-     - **Mac/Linux**: Run `chmod 600 ~/.kaggle/kaggle.json` to set the appropriate permissions.
-
-4. **Install the Kaggle API Python Package**:
-   - You can install the Kaggle API using pip:
+4. **Install the Kaggle API Package**:
+   - Install the required package via pip:
      ```bash
      pip install kaggle
      ```
@@ -81,23 +80,24 @@ This project is configured to work with datasets available on [Kaggle](https://w
     │   └── preprocessor.py
     ├── training
     │   ├── __init__.py
+    │   ├── optimizer.py
     │   └── trainer.py
     └── utils
         ├── __init__.py
         └── logger.py
 ```
 
-- **`data/`**: Contains raw and processed data.
-- **`logs/`**: Directory for storing logs generated during processing and training.
+- **`data/`**: Stores raw and processed datasets.
+- **`logs/`**: Contains logs generated during data processing and model training.
 - **`models/`**: Directory for saving trained models.
-- **`src/`**: Contains the main codebase, including data processing, model training, and evaluation scripts.
-  - **`config/`**: Configuration files for managing paths, model parameters, and other settings.
-  - **`data/`**: Modules for loading and preprocessing data.
-  - **`evaluation/`**: Scripts for evaluating the performance of the trained models.
-  - **`models/`**: Definition and training of the machine learning models.
-  - **`processing/`**: Preprocessing logic and feature engineering.
-  - **`training/`**: Training logic for the models.
-  - **`utils/`**: Utility functions such as logging and configuration management.
+- **`src/`**: The main codebase, including modules for data processing, model training, and evaluation.
+  - **`config/`**: Configuration files managing paths, model parameters, and settings.
+  - **`data/`**: Modules for data loading and preprocessing.
+  - **`evaluation/`**: Scripts for evaluating model performance.
+  - **`models/`**: Contains model definitions and training scripts.
+  - **`processing/`**: Includes preprocessing logic and feature engineering.
+  - **`training/`**: Logic for training models, including hyperparameter optimization.
+  - **`utils/`**: Utility functions like logging and configuration management.
 
 ## How to Use
 
@@ -108,37 +108,35 @@ This project is configured to work with datasets available on [Kaggle](https://w
 
 ### Setup
 
-1. Clone the repository:
+1. **Clone the Repository**:
 
    ```bash
    git clone https://github.com/gianlucamazza/player-market-value-prediction.git
    cd player-market-value-prediction
    ```
 
-2. Install the required dependencies:
+2. **Install Dependencies**:
 
    ```bash
    pip install -r requirements.txt
-   ``` 
-
-3. Ensure your data is placed in the correct directories as specified in the configuration files.
+   ```
 
 ### Running the Pipeline
 
-You can run the entire data processing, model training, and evaluation pipeline using the following command:
+You can run the entire pipeline—data processing, model training, and evaluation—with the following command:
 
 ```bash
 python -m src.main
 ```
 
-This will load the data, preprocess it, train the model, and evaluate the results.
+If the data isn't found locally, the pipeline will automatically download the necessary datasets from Kaggle.
 
 ### Configuration
 
-The project uses a configuration file (`config.py`) to manage paths, feature selection, model parameters, and other settings. You can modify the configuration to suit your specific needs.
+The project uses a configuration file (`config.py`) to manage paths, feature selection, model parameters, and other settings. You can customize the configuration to fit your specific needs.
 
 ## Future Work
 
-- **Model Optimization**: Experiment with different machine learning models and hyperparameters to improve prediction accuracy.
-- **Feature Expansion**: Incorporate additional features such as player injuries, contract details, and match importance.
-- **Real-time Predictions**: Develop a system for making real-time market value predictions based on live match data.
+- **Model Optimization**: Explore different models and hyperparameters to enhance prediction accuracy.
+- **Feature Expansion**: Integrate additional features like player injuries, contract details, and match importance.
+- **Real-time Predictions**: Develop a system for real-time player market value predictions based on live match data.
