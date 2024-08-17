@@ -1,5 +1,6 @@
 import optuna
 import json
+import os
 from sklearn.model_selection import train_test_split
 from src.models.lstm_model import LSTMModel
 from src.training.trainer import train_model, evaluate_model
@@ -56,8 +57,9 @@ def objective(trial, X, y, device=None):
 
     logger.info(
         f"Trial {trial.number}: Hyperparameters: "
-        f"learning_rate={learning_rate}, batch_size={batch_size}, "
-        f"hidden_size={hidden_size}, num_layers={num_layers}, weight_decay={weight_decay}, dropout={dropout}"
+        f"learning_rate={learning_rate:.6f}, batch_size={batch_size}, "
+        f"hidden_size={hidden_size}, num_layers={num_layers}, "
+        f"weight_decay={weight_decay:.6f}, dropout={dropout:.4f}"
     )
 
     # Split the data into training and validation sets
@@ -92,7 +94,9 @@ def objective(trial, X, y, device=None):
     model.load_state_dict(model_state)
     val_mse, val_rmse, val_r2 = evaluate_model(model, X_val, y_val, device)
 
-    logger.info(f"Trial {trial.number} completed with validation MSE: {val_mse:.4f}")
+    logger.info(
+        f"Trial {trial.number} completed with validation MSE: {val_mse:.4f}, RMSE: {val_rmse:.4f}, R²: {val_r2:.4f}"
+    )
 
     # Return the validation loss as the objective value
     return val_mse
@@ -101,9 +105,11 @@ def objective(trial, X, y, device=None):
 def optimize_hyperparameters(
     X: pd.DataFrame,
     y: pd.Series,
+    study_name: str = "LSTM Hyperparameter Optimization",
     n_trials=50,
     device=None,
     hyperparams_path: str = "best_hyperparams.json",
+    storage_path: str = "optuna_study.db",
 ) -> dict:
     """
     Optimize hyperparameters using Optuna.
@@ -111,24 +117,38 @@ def optimize_hyperparameters(
     Args:
         X: Features dataframe.
         y: Target series.
+        study_name: Name for the Optuna study.
         n_trials: Number of trials to run for optimization.
         device: The device (CPU/GPU) to run the training on.
         hyperparams_path: Path to save the best hyperparameters.
+        storage_path: Path to the SQLite database for saving the study.
 
     Returns:
         The best set of hyperparameters found during optimization.
     """
 
-    # Define Optuna study
-    study = optuna.create_study(direction="minimize")
+    # Create or load an Optuna study
+    if os.path.exists(storage_path):
+        logger.info(f"Resuming existing study from {storage_path}")
+        storage = f"sqlite:///{storage_path}"
+        study = optuna.load_study(study_name=study_name, storage=storage)
+    else:
+        logger.info(f"Starting a new study: {study_name}")
+        storage = f"sqlite:///{storage_path}"
+        study = optuna.create_study(
+            direction="minimize", study_name=study_name, storage=storage
+        )
+
+    logger.info(f"Study {study_name} using storage: {storage_path}")
 
     # Optimize the objective function
     study.optimize(lambda trial: objective(trial, X, y, device), n_trials=n_trials)
 
     best_hyperparams = study.best_params
-    logger.info(f"Best hyperparameters: {best_hyperparams}")
+    logger.info(f"Best hyperparameters: {json.dumps(best_hyperparams, indent=4)}")
     logger.info(f"Best validation MSE: {study.best_value:.4f}")
 
+    # Save the best hyperparameters
     save_best_hyperparams(best_hyperparams, hyperparams_path)
 
-    return study.best_params
+    return best_hyperparams

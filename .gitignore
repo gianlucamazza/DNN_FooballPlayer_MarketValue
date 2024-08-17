@@ -1,5 +1,6 @@
 #
 data/raw/*.csv
+optuna_study.db
 
 # Python
 __pycache__/
